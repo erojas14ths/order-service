@@ -3,7 +3,7 @@ on: push
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: polarbookshop/order-service
+  IMAGE_NAME: erojas14ths/order-service
   VERSION: latest
 
 jobs:
@@ -21,11 +21,14 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.6.3
       - name: Build, unit tests and integration tests
         run: |
-          chmod +x gradlew
-          ./gradlew build
+          chmod +x gradle
+          gradle build
       - name: Code vulnerability scanning
         uses: anchore/scan-action@v3
         id: scan
@@ -47,7 +50,7 @@ jobs:
             kubeval --strict -d k8s
   package:
     name: Package and Publish
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/master' }}
     needs: [ build ]
     runs-on: ubuntu-22.04
     permissions:
@@ -57,16 +60,19 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 7.6.3
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 17
-          cache: gradle
       - name: Build container image
         run: |
-          chmod +x gradlew
-          ./gradlew bootBuildImage \
+          chmod +x gradle
+          gradle bootBuildImage \
             --imageName ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
       - name: OCI image vulnerability scanning
         uses: anchore/scan-action@v3
